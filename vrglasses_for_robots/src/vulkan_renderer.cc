@@ -385,11 +385,20 @@ void vrglasses_for_robots::VulkanRenderer::buildRenderPass(uint32_t width,
         vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 
     // MVP via push constant block
-    VkPushConstantRange pushConstantRange =
-        vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT,
-                                             sizeof(glm::mat4), 0);
-    pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-    pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+//    VkPushConstantRange pushConstantRange =
+//        vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT,
+//                                             sizeof(glm::mat4), 0);
+
+    VkPushConstantRange pushConstantInfo[2];
+    pushConstantInfo[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushConstantInfo[0].offset = 0;
+    pushConstantInfo[0].size = 16* sizeof ( float );
+    pushConstantInfo[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantInfo[1].offset = 16* sizeof ( float );
+    pushConstantInfo[1].size = 1* sizeof ( float );
+
+    pipelineLayoutCreateInfo.pushConstantRangeCount = 2;
+    pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantInfo;
 
     VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo,
                                            nullptr, &pipelineLayout));
@@ -587,10 +596,14 @@ void vrglasses_for_robots::VulkanRenderer::drawTriangles(uint32_t width,
     for (size_t idx = 0; idx < scene_items_.size(); idx++) {
 
       glm::mat4 mvp_cv = vp_cv_ * scene_items_[idx].T_World2Model;
+      float id = (float)idx / (scene_items_.size());
 
       vkCmdPushConstants(commandBuffer, pipelineLayout,
-                         VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp_cv),
+                         VK_SHADER_STAGE_VERTEX_BIT, 0, 16*4,
                          &mvp_cv);
+      vkCmdPushConstants(commandBuffer, pipelineLayout,
+                         VK_SHADER_STAGE_FRAGMENT_BIT, 16*4, 4,
+                         &id);
       size_t model_idx = models_index_[scene_items_[idx].model_name];
       vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                               pipelineLayout, 0, 1, &textures_[models_[model_idx].material_index].descriptorSet, 0, nullptr);
@@ -627,9 +640,8 @@ float vrglasses_for_robots::VulkanRenderer::convertZbufferToDepth(
   return 2.0 * near * far / (far + near - zValue * (far - near));
 }
 
-void vrglasses_for_robots::VulkanRenderer::saveImageDepthmap(
-    uint32_t width, uint32_t height, cv::Mat &result_depth_map,
-    cv::Mat &result_attribute_map) {
+void vrglasses_for_robots::VulkanRenderer::saveImageDepthmap(uint32_t width, uint32_t height, cv::OutputArray result_depth_map,
+    cv::OutputArray result_attribute_map) {
   result_depth_map.create(height, width, CV_32F);
   result_attribute_map.create(height, width, CV_8UC4);
   /*
@@ -722,7 +734,7 @@ void vrglasses_for_robots::VulkanRenderer::saveImageDepthmap(
 
     {
       VkDeviceSize mem_size = height * width * 4; // assuming 8UC4
-      memcpy(result_attribute_map.data, imagedata, mem_size);
+      memcpy(result_attribute_map.getMat().data, imagedata, mem_size);
     }
 
     /*
@@ -772,17 +784,17 @@ void vrglasses_for_robots::VulkanRenderer::saveImageDepthmap(
       VK_CHECK_RESULT(
           vkMapMemory(device, image_buffer_memory, 0, mem_size, 0, &mapped));
 
-      memcpy(result_depth_map.data, mapped, mem_size);
+      memcpy(result_depth_map.getMat().data, mapped, mem_size);
       vkUnmapMemory(device, image_buffer_memory);
 
       // 2.0 * near* far / (far + near - zValue * (far - near));
 
       //      result_depth_map.convertTo(result_depth_map, CV_32F, 2, -1);
-      result_depth_map.convertTo(result_depth_map, CV_32F,
+      result_depth_map.getMat().convertTo(result_depth_map, CV_32F,
                                  -1.0 * static_cast<double>(far_ - near_),
                                  static_cast<double>(far_ + near_));
 
-      result_depth_map = (2.0f * far_ * near_) / result_depth_map;
+      result_depth_map.getMat() = (2.0f * far_ * near_) / result_depth_map.getMat();
 
       // cv::flip(result_depth_map, result_depth_map, 0);
       cv::threshold(result_depth_map, result_depth_map, far_ - 0.0001, far_,

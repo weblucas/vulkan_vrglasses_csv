@@ -213,8 +213,8 @@ class VulkanRenderer {
   void drawTriangles(uint32_t width, uint32_t height);
 
   void saveImageDepthmap(
-      uint32_t width, uint32_t height, cv::Mat& result_depth_map,
-      cv::Mat& result_attribute_map);
+      uint32_t width, uint32_t height, cv::OutputArray result_depth_map,
+      cv::OutputArray result_attribute_map);
 
   VkCommandBuffer beginSingleTimeCommands();
 
