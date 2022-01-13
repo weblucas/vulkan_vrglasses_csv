@@ -47,6 +47,8 @@ private:
 
 
 
+    void kindr2mvp(glm::vec3 position, glm::quat orientation, glm::mat4 &mvp);
+    void glm2mvp(glm::vec3 position, glm::quat orientation, glm::mat4 &mvp);
 };
 
 #endif

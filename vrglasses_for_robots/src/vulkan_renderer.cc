@@ -596,7 +596,7 @@ void vrglasses_for_robots::VulkanRenderer::drawTriangles(uint32_t width,
     for (size_t idx = 0; idx < scene_items_.size(); idx++) {
 
       glm::mat4 mvp_cv = vp_cv_ * scene_items_[idx].T_World2Model;
-      float id = (float)idx / (scene_items_.size());
+      float id = 0.2 + ((float)idx / (scene_items_.size()))*0.8;
 
       vkCmdPushConstants(commandBuffer, pipelineLayout,
                          VK_SHADER_STAGE_VERTEX_BIT, 0, 16*4,

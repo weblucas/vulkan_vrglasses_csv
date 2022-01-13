@@ -5,13 +5,15 @@
 #include <boost/lexical_cast.hpp>
 #include <gflags/gflags.h>
 #include <glm/gtc/matrix_inverse.hpp>
+#include <kindr/minimal/quat-transformation.h>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
 
 
 #include <vrglasses_for_robots/csv_processor.h>
 
-DEFINE_string(pose_file, "/media/secssd/dataset/50s_house_45/visim/output/1_InertialPose/pose_data_onetwo.csv", "visensor simulator project folder");
+DEFINE_string(pose_file, "/media/secssd/dataset/50s_house_45/visim/output/1_InertialPose/pose_data_one3.csv", "visensor simulator project folder");
+// /media/secssd/dataset/amazon_models/irchel140821/random_poses.txt
 DEFINE_string(output_folder_path, "/media/secssd/tmp/render_test/a1", "result path");
 DEFINE_int32(step_skip, 1, "step skip");
 DEFINE_string(resource_folder, "/media/secssd/tmp/render_test/a13", "result path");
@@ -26,19 +28,25 @@ DEFINE_double(cx, 360.5, "cx");
 DEFINE_double(cy, 240.5, "cy");
 DEFINE_bool(ortho,false,"use orthographic projection");
 DEFINE_string(shader_folder, "/media/secssd/code/vrglasses4robots/data/shaders", "compiled shader folders");
+
 //DEFINE_string(mesh_obj_file, "/media/secssd/dataset/capsule/capsule.obj", "compiled shader folders");
 //DEFINE_string(mesh_texture_file, "/media/secssd/dataset/capsule/capsule0.jpg", "compiled shader folders");
-DEFINE_string(mesh_obj_file, "", "compiled shader folders");
-DEFINE_string(mesh_texture_file, "", "compiled shader folders");
+//DEFINE_string(model_folder, "", "compiled shader folders");
+//DEFINE_string(model_list_file, "", "compiled shader folders");
+//DEFINE_string(model_pose_file, "", "compiled shader folders");
+
 // /media/secssd/sa_dataset/v4rl_aerial_semantic_dataset/scenes/buffalo_construction_site_v1.scn
 // /media/secssd/sa_dataset/v4rl_aerial_semantic_models
 
 //DEFINE_string(mesh_obj_file, "/media/secssd/code/vrglasses4robots/data/models/50s_house_v2_45_3_Zu_Xf.obj", "compiled shader folders");
 //DEFINE_string(mesh_texture_file, "/media/secssd/code/vrglasses4robots/data/textures/new_texture_small.tga", "compiled shader folders");
 
+DEFINE_string(mesh_obj_file, "", "compiled shader folders");
+DEFINE_string(mesh_texture_file, "", "compiled shader folders");
 DEFINE_string(model_folder, "/media/secssd/sa_dataset/v4rl_aerial_semantic_models", "compiled shader folders");
 DEFINE_string(model_list_file, "/media/secssd/sa_dataset/v4rl_aerial_semantic_dataset/scenes/_global_model_def_list.txt", "compiled shader folders");
 DEFINE_string(model_pose_file, "/media/secssd/sa_dataset/v4rl_aerial_semantic_dataset/scenes/model_poses_list.txt", "compiled shader folders");
+
 
 
 
@@ -164,8 +172,13 @@ void CSVProcessor::runHeadless()
             orientation.y = boost::lexical_cast<double>(vec[5]);
             orientation.z = boost::lexical_cast<double>(vec[6]);
             orientation.w = boost::lexical_cast<double>(vec[7]);
-            for(int ii=0;ii<1;ii++)
+            orientation = glm::normalize(orientation);
+            for(int ii=0;ii<10000;ii++)
+            {
+                orientation = glm::normalize(orientation);
                 renderPose(position,orientation);
+            }
+
         }
         catch(boost::bad_lexical_cast &)
         {
@@ -209,12 +222,38 @@ glm::mat4 pose_inverse(glm::mat4 in_mat)
     return result;
 }
 
-void CSVProcessor::renderPose(glm::vec3 position, glm::quat orientation)
-{
-    static long int counter = 0;
-    counter++;
-    std::cout << '\r' << counter << std::flush;
-    //std::cout << glm::to_string(position) << " " << glm::to_string(orientation) <<std::endl;
+void CSVProcessor::kindr2mvp(glm::vec3 position, glm::quat orientation,glm::mat4& mvp){
+    Eigen::Vector3d p_WS(
+        position.x,
+        position.y,
+        position.z);
+
+    Eigen::Quaterniond q_WS;
+    q_WS.x() = orientation.x;
+    q_WS.y() = orientation.y;
+    q_WS.z() = orientation.z;
+    q_WS.w() = orientation.w;
+
+    kindr::minimal::QuatTransformation T_WC =
+        kindr::minimal::QuatTransformation(p_WS, q_WS);
+    kindr::minimal::QuatTransformation T_CW_cv = T_WC.inverse();
+    auto T_CW_cv_eigen = T_CW_cv.getTransformationMatrix();
+    glm::mat4 T_CW_cv_glm;
+    glm::mat4 conversion_gl_cv = glm::mat4(1,0,0,0,0,-1,0,0,0,0,-1,0,0,0,0,1);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < 4; ++j)
+        {
+            T_CW_cv_glm[j][i] = T_CW_cv_eigen(i, j);
+        }
+    }
+    std::cout << " twc " << T_WC.getTransformationMatrix() << std::endl;
+    std::cout << " tcw " << glm::to_string(T_CW_cv_glm) << std::endl;
+    std::cout << " conversion_gl_cv " << glm::to_string(T_CW_cv_glm) << std::endl;
+    mvp = projection_matrix_ * conversion_gl_cv * T_CW_cv_glm;
+}
+void CSVProcessor::glm2mvp(glm::vec3 position, glm::quat orientation,glm::mat4& mvp){
     glm::mat4 T_WC = glm::mat4_cast(orientation);
     //std::cout << glm::to_string(T_WC) << std::endl;
     T_WC[3] = glm::vec4(position,1.0);
@@ -225,18 +264,32 @@ void CSVProcessor::renderPose(glm::vec3 position, glm::quat orientation)
                                            0,-1,0,0,
                                            0,0,-1,0,
                                            0,0,0,1);
-    //glm::mat4  mvp = projection_matrix_ * conversion_gl_cv * T_CW ;
-    glm::mat4  mvp = projection_matrix_ * glm::lookAt(glm::vec3(25,0,50),glm::vec3(0,0,0),glm::vec3(0,0,1));
-
-    glm::mat4 lookat = glm::lookAt(glm::vec3(5,0,5),glm::vec3(0,0,0),glm::vec3(0,0,1));
-    glm::mat4 lookat_inv = pose_inverse(lookat);
-    glm::quat rot = glm::quat_cast(lookat_inv);
-    glm::vec4 translation = lookat_inv[3];
+    mvp = projection_matrix_ * conversion_gl_cv * T_CW ;
+    //mvp = projection_matrix_ * glm::lookAt(glm::vec3(0.1,0,50),glm::vec3(0,0,0),glm::vec3(0,0,1));
 
     //std::cout << "lookat " << glm::to_string(glm::lookAt(glm::vec3(5,0,5),glm::vec3(0,0,0),glm::vec3(0,0,1))) << std::endl;
     //std::cout << "rot " << glm::to_string(rot) << std::endl;
     //std::cout << "translation' " << glm::to_string(translation) << std::endl;
+}
 
+void CSVProcessor::renderPose(glm::vec3 position, glm::quat orientation)
+{
+    static long int counter = 0;
+    counter++;
+    std::cout << '\r' << counter << std::flush;
+    //std::cout << glm::to_string(position) << " " << glm::to_string(orientation) <<std::endl;
+
+
+//    glm::mat4 lookat = glm::lookAt(glm::vec3(5,0,5),glm::vec3(0,0,0),glm::vec3(0,0,1));
+//    glm::mat4 lookat_inv = pose_inverse(lookat);
+//    glm::quat rot = glm::quat_cast(lookat_inv);
+//    glm::vec4 translation = lookat_inv[3];
+
+    glm::mat4 mvp;
+    //kindr2mvp(position,orientation,mvp);
+    glm2mvp(position,orientation,mvp);
+    std::cout << " mvp " << glm::to_string(mvp) << std::endl;
+    std::cout << " perpective " << glm::to_string(projection_matrix_) << std::endl;
     render_app->setCamera(mvp);
     cv::Mat show_img, channels[4];
     cv::Mat result_depth_map, result_rgb_map, result_semantic_map;
