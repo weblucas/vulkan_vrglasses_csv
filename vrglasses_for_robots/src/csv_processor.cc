@@ -12,25 +12,25 @@
 
 #include <vrglasses_for_robots/csv_processor.h>
 
-DEFINE_string(pose_file, "/media/secssd/dataset/50s_house_45/visim/output/1_InertialPose/pose_data_one3.csv", "visensor simulator project folder");
+DEFINE_string(pose_file, "/media/secssd/dataset/amazon_models/irchel140821/random_poses.txt", "visensor simulator project folder");
 // /media/secssd/dataset/amazon_models/irchel140821/random_poses.txt
 DEFINE_string(output_folder_path, "/media/secssd/tmp/render_test/a1", "result path");
 DEFINE_int32(step_skip, 1, "step skip");
 DEFINE_string(resource_folder, "/media/secssd/tmp/render_test/a13", "result path");
 
-DEFINE_int32(output_w, 720, "width");
+DEFINE_int32(output_w, 752, "width");
 DEFINE_int32(output_h, 480, "height");
 DEFINE_double(far, 1000, "far");
 DEFINE_double(near, 0.1, "near");
-DEFINE_double(fx, 455, "fx");
-DEFINE_double(fy, 455, "fy");
-DEFINE_double(cx, 360.5, "cx");
-DEFINE_double(cy, 240.5, "cy");
+DEFINE_double(fx, 571.63, "fx");
+DEFINE_double(fy, 571.63, "fy");
+DEFINE_double(cx, 366.23, "cx");
+DEFINE_double(cy, 243.592, "cy");
 DEFINE_bool(ortho,false,"use orthographic projection");
 DEFINE_string(shader_folder, "/media/secssd/code/vrglasses4robots/data/shaders", "compiled shader folders");
 
-//DEFINE_string(mesh_obj_file, "/media/secssd/dataset/capsule/capsule.obj", "compiled shader folders");
-//DEFINE_string(mesh_texture_file, "/media/secssd/dataset/capsule/capsule0.jpg", "compiled shader folders");
+//DEFINE_string(mesh_obj_file, "/media/secssd/dataset/amazon_models/irchel140821/3dmesh/irchel140821-merged_simplified_3d_mesh.obj", "compiled shader folders");
+//DEFINE_string(mesh_texture_file, "/media/secssd/dataset/amazon_models/irchel140821/3dmesh/irchel140821-merged_semantic-rgbs.png", "compiled shader folders");
 //DEFINE_string(model_folder, "", "compiled shader folders");
 //DEFINE_string(model_list_file, "", "compiled shader folders");
 //DEFINE_string(model_pose_file, "", "compiled shader folders");
@@ -44,8 +44,8 @@ DEFINE_string(shader_folder, "/media/secssd/code/vrglasses4robots/data/shaders",
 DEFINE_string(mesh_obj_file, "", "compiled shader folders");
 DEFINE_string(mesh_texture_file, "", "compiled shader folders");
 DEFINE_string(model_folder, "/media/secssd/sa_dataset/v4rl_aerial_semantic_models", "compiled shader folders");
-DEFINE_string(model_list_file, "/media/secssd/sa_dataset/v4rl_aerial_semantic_dataset/scenes/_global_model_def_list.txt", "compiled shader folders");
-DEFINE_string(model_pose_file, "/media/secssd/sa_dataset/v4rl_aerial_semantic_dataset/scenes/model_poses_list.txt", "compiled shader folders");
+DEFINE_string(model_list_file, "/media/secssd/sa_dataset/v4rl_aerial_semantic_dataset/scenes/irchel1408/model_def_list.txt", "compiled shader folders");
+DEFINE_string(model_pose_file, "/media/secssd/sa_dataset/v4rl_aerial_semantic_dataset/scenes/irchel1408/model_poses_list.txt", "compiled shader folders");
 
 
 
@@ -173,12 +173,7 @@ void CSVProcessor::runHeadless()
             orientation.z = boost::lexical_cast<double>(vec[6]);
             orientation.w = boost::lexical_cast<double>(vec[7]);
             orientation = glm::normalize(orientation);
-            for(int ii=0;ii<10000;ii++)
-            {
-                orientation = glm::normalize(orientation);
-                renderPose(position,orientation);
-            }
-
+            renderPose(position,orientation);
         }
         catch(boost::bad_lexical_cast &)
         {
@@ -299,7 +294,7 @@ void CSVProcessor::renderPose(glm::vec3 position, glm::quat orientation)
     cv::imshow("Semantics",channels[3]);
     if (1)
     {
-        double min_depth = 0, max_depth = 30;
+        double min_depth = 0, max_depth = 100;
         //cv::minMaxLoc(mesh_depth_image, &min_depth, &max_depth);
 
         result_depth_map.convertTo(
