@@ -18,21 +18,15 @@ class CSVProcessor {
  public:
     CSVProcessor(){}
     bool initialization(
-      ); //const std::string& csv_pose_file,  const std::string& output_folder_path
+      );
 
     void runHeadless();
 
 private:
-    //glm::mat4 computeMVP(DataEntry& entry);
     glm::mat4 projection_matrix_;
 
     std::ifstream pose_file_;
     boost::filesystem::path output_folder_;
-
-//    void buildOpenglProjectionFromIntrinsics(
-//        glm::mat4& matPerspective, glm::mat4& matProjection,
-//        /*glm::mat4& matCVProjection,*/ int img_width, int img_height, float alpha,
-//        float beta, float skew, float u0, float v0, float near, float far);
 
     void parseLine(std::string line, std::vector<std::string> &vec);
 
@@ -44,10 +38,6 @@ private:
     void stopVulkan();
     void renderPose(glm::vec3 position, glm::quat orientation);
 
-
-
-
-    //void kindr2mvp(glm::vec3 position, glm::quat orientation, glm::mat4 &mvp);
     void glm2mvp(glm::vec3 position, glm::quat orientation, glm::mat4 &mvp);
 };
 
