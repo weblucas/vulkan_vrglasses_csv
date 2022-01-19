@@ -109,7 +109,8 @@ struct ThreeDModel{
 struct SceneItem{
   std::string model_name;
   glm::mat4 T_World2Model;
-  SceneItem():model_name("none"){
+  unsigned char id_item;
+  SceneItem():model_name("none"),id_item(255){
     T_World2Model = glm::mat4(1.0);
   }
 };

@@ -596,7 +596,7 @@ void vrglasses_for_robots::VulkanRenderer::drawTriangles(uint32_t width,
     for (size_t idx = 0; idx < scene_items_.size(); idx++) {
 
       glm::mat4 mvp_cv = vp_cv_ * scene_items_[idx].T_World2Model;
-      float id = 0.2 + ((float)idx / (scene_items_.size()))*0.8;
+      float id = scene_items_[idx].id_item / 255.0;
 
       vkCmdPushConstants(commandBuffer, pipelineLayout,
                          VK_SHADER_STAGE_VERTEX_BIT, 0, 16*4,
@@ -1627,6 +1627,7 @@ bool vrglasses_for_robots::VulkanRenderer::loadScene(
         scene_items_.push_back(SceneItem());
         scene_items_.back().model_name = strs[0];
         scene_items_.back().T_World2Model = parsePose(strs[1]);
+        scene_items_.back().id_item = static_cast<unsigned char>(std::atoi(strs[2].c_str()));
       }
     } else {
       throw std::invalid_argument("file could not be opened");
