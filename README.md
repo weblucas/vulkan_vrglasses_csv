@@ -6,7 +6,7 @@ select a INSTALL_FOLDER for this project
 
 ## installation:
 ```
-apt install libeigen3-dev libvulkan-dev libgoogle-glog-dev libglm-dev glslang-tools
+apt install libeigen3-dev libvulkan-dev libgoogle-glog-dev libglm-dev glslang-tools libopencv-dev
 cd INSTALL_FOLDER
 git clone git@github.com:weblucas/vulkan_vrglasses_csv.git
 
